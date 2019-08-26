@@ -1,11 +1,13 @@
 from functools import reduce
 import hashlib
+import json
+import pickle
 from collections import OrderedDict
 
 
-import hash_util 
+import hash_util
 # The reward we give to miners (for creating a new block)
-MINING_REWARD = 6.9
+MINING_REWARD = 7.3
 
 # Our starting block for the blockchain
 GENESIS_BLOCK = block = {'previous_hash': '',
@@ -18,6 +20,44 @@ open_transactions = []
 supes = "Lumiere"
 # Registered participants: Ourself + other people sending/ receiving coins
 participants = {"Lumiere"}
+
+
+def load_data():
+    """ """
+    with open('node_data.txt', mode='r') as f:
+        content = f.readlines()
+        global blockchain
+        global open_transactions
+        blockchain = json.loads(content[0][:-1])
+        updated_blockchain =[]
+        for block in blockchain:
+            updated_block = {
+                'previous_hash': block['previous_hash'],
+                 'index': block['index'],
+                 'proof': block['proof'],
+                 'transactions': [OrderedDict(
+                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
+            }
+            updated_blockchain.append(updated_block)
+        blockchain = updated_blockchain
+        open_transactions = json.loads(content[1])
+        updated_transactions = []
+        for tx in open_transactions:
+            updated_transaction = OrderedDict(
+                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])] )
+            updated_transactions.append(updated_transaction)
+        open_transactions = updated_transactions
+
+
+load_data()
+
+
+def save_data():
+    """ """
+    with open('node_data.txt', mode='w') as f:
+        f.write(json.dumps(blockchain))
+        f.write('\n')
+        f.write(json.dumps(open_transactions))
 
 
 def get_last_blockchain_value():
@@ -55,27 +95,6 @@ def get_balance(participant):
     return received - sent
 
 
-def add_transaction(recipient, sender=supes, amount=0.1):
-    """ Add a new transaction to the list of open transactions.
-
-    Arguments:
-        :sender: The sender of the coins.
-        :recipient: The recipient of the coins.
-        :amount: Transaction amount(default =  0.1).
-    """
-    transaction = OrderedDict(
-        [('sender', sender), ('recipient', recipient), ('amount', amount)])
-    if verify_transaction(transaction):
-        open_transactions.append(transaction)
-        participants.add(sender)
-        participants.add(recipient)
-        return True
-    return False
-
-
-
-
-
 def valid_pow(transactions, last_hash, proof):
     """Validate a proof of work number and see if it solves the puzzle algorithm (two leading 0s)
 
@@ -86,7 +105,7 @@ def valid_pow(transactions, last_hash, proof):
     """
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()
     g_hash = hash_util.hash_string(guess)
-    #print(g_hash)
+    # print(g_hash)
     return g_hash[0:3] == '000'
 
 
@@ -112,9 +131,9 @@ def mine_block():
         [('sender', 'MINING'), ('recipient', supes), ('amount', MINING_REWARD)])
     # Copy transaction instead of manipulating the original open_transactions list
     # This ensures that if for some reason the mining should fail, we don't have the reward transaction stored in the open transactions
-    copy_transactions = open_transactions[:]
+    copy_transactions=open_transactions[:]
     copy_transactions.append(reward_transaction)
-    block = {
+    block={
         'previous_hash': hashed_block,
         'index': len(blockchain),
         'transactions': copy_transactions,
@@ -132,9 +151,28 @@ def get_transaction_value():
     return (tx_recipient, tx_amount)
 
 
+def add_transaction(recipient, sender=supes, amount=0.1):
+    """ Add a new transaction to the list of open transactions.
+
+    Arguments:
+        :sender: The sender of the coins.
+        :recipient: The recipient of the coins.
+        :amount: Transaction amount(default =  0.1).
+    """
+    transaction = OrderedDict(
+        [('sender', sender), ('recipient', recipient), ('amount', amount)])
+    if verify_transaction(transaction):
+        open_transactions.append(transaction)
+        participants.add(sender)
+        participants.add(recipient)
+        save_data()
+        return True
+    return False
+
+
 def get_user_choice():
     """ Returns the user's choice """
-    user_input = input("Your choice: ")
+    user_input=input("Your choice: ")
     return user_input
 
 
@@ -170,12 +208,12 @@ def verify_transaction(transaction):
      Arguments:
          :transaction: The transaction that should be verified.
      """
-    sender_bal = get_balance(transaction['sender'])
+    sender_bal=get_balance(transaction['sender'])
     return sender_bal >= transaction['amount']
 
 
 # blockchain interface
-pseudo_input = True
+pseudo_input=True
 while pseudo_input:
     print("0: Print blockchain")
     print("1: Add a new transaction")
@@ -184,11 +222,11 @@ while pseudo_input:
     print("4: Check transaction validity")
     print("h: Manipulate the blockchain")
     print("q: Quit")
-    user_choice = get_user_choice()
+    user_choice=get_user_choice()
     if user_choice == '1':
-        transaction_data = get_transaction_value()
-        recipient, amount = transaction_data
-        if add_transaction(recipient, amount=amount):
+        transaction_data=get_transaction_value()
+        recipient, amount=transaction_data
+        if add_transaction(recipient, amount = amount):
             print("Transaction successful")
         else:
             print("Transaction failed")
@@ -197,7 +235,8 @@ while pseudo_input:
         print_blockchain()
     elif user_choice == '2':
         if mine_block():
-            open_transactions = []
+            open_transactions=[]
+            save_data()
     elif user_choice == '3':
         print(participants)
     elif user_choice == '4':
@@ -207,7 +246,7 @@ while pseudo_input:
             print("There are invalid transactions")
     elif user_choice == 'h':
         if len(blockchain) >= 1:
-            blockchain[0] = {'previous_hash': '',
+            blockchain[0]={'previous_hash': '',
                              'index': 0, 'transactions': [{'sender': "Light",
                                                            'recipient': "Max",
                                                            'amount': 73}]}
