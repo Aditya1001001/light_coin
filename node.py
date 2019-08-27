@@ -3,7 +3,15 @@ from uuid import uuid4
 from blockchain import Blockchain
 from verification import Utility
 
+
 class Node:
+    """The node which runs the local blockchain instance.
+
+    Attributes:
+        :id: The id of the node.
+        :blockchain: The blockchain which is run by this node.
+    """
+
     def __init__(self):
         # self.id = str(uuid4())
         self.id = 'Lumiere'
@@ -71,11 +79,13 @@ class Node:
                 print('Invalid blockchain!')
                 # Break out of the loop
                 break
-            print('Balance of {}: {:6.2f}'.format(self.id, self.blockchain.get_balance()))
+            print('Balance of {}: {:6.2f}'.format(
+                self.id, self.blockchain.get_balance()))
         else:
             print('User left!')
 
         print('Done!')
+
 
 n = Node()
 n.listen_for_input()
