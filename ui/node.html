@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Blockchain Management</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css"
-        integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
     <style>
         .lds-ring {
             display: inline-block;
@@ -15,7 +14,7 @@
             width: 64px;
             height: 64px;
         }
-
+        
         .lds-ring div {
             box-sizing: border-box;
             display: block;
@@ -28,24 +27,23 @@
             animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
             border-color: #fa923f transparent transparent transparent;
         }
-
+        
         .lds-ring div:nth-child(1) {
             animation-delay: -0.45s;
         }
-
+        
         .lds-ring div:nth-child(2) {
             animation-delay: -0.3s;
         }
-
+        
         .lds-ring div:nth-child(3) {
             animation-delay: -0.15s;
         }
-
+        
         @keyframes lds-ring {
             0% {
                 transform: rotate(0deg);
             }
-
             100% {
                 transform: rotate(360deg);
             }
@@ -64,7 +62,7 @@
             <div v-if="error" class="alert alert-danger" role="alert">
                 {{ error }}
             </div>
-            <div v-if="success" class="alert alert-success" role="alert">
+            <div v-if="success" class="alert alert-success" style="overflow-wrap: break-word;" role="alert">
                 {{ success }}
             </div>
             <div class="row">
@@ -100,13 +98,11 @@
                     <form @submit.prevent="onSendTx">
                         <div class="form-group">
                             <label for="recipient">Recipient Key</label>
-                            <input v-model="outgoingTx.recipient" type="text" class="form-control" id="recipient"
-                                placeholder="Enter key">
+                            <input v-model="outgoingTx.recipient" type="text" class="form-control" id="recipient" placeholder="Enter key">
                         </div>
                         <div class="form-group">
                             <label for="amount">Amount of Coins</label>
-                            <input v-model.number="outgoingTx.amount" type="number" step="0.001" class="form-control"
-                                id="amount">
+                            <input v-model.number="outgoingTx.amount" type="number" step="0.001" class="form-control" id="amount">
                             <small class="form-text text-muted">Fractions are possible (e.g. 5.67)</small>
                         </div>
                         <div v-if="txLoading" class="lds-ring">
@@ -115,8 +111,7 @@
                             <div></div>
                             <div></div>
                         </div>
-                        <button :disabled="txLoading || outgoingTx.recipient.trim() === '' || outgoingTx.amount <= 0"
-                            type="submit" class="btn btn-primary">Send</button>
+                        <button :disabled="txLoading || outgoingTx.recipient.trim() === '' || outgoingTx.amount <= 0" type="submit" class="btn btn-primary">Send</button>
                     </form>
                 </div>
             </div>
@@ -125,8 +120,7 @@
                 <div class="col">
                     <ul class="nav nav-tabs">
                         <li class="nav-item">
-                            <a class="nav-link" :class="{active: view === 'chain'}" href="#"
-                                @click="view = 'chain'">Blockchain</a>
+                            <a class="nav-link" :class="{active: view === 'chain'}" href="#" @click="view = 'chain'">Blockchain</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: view === 'tx'}" href="#" @click="view = 'tx'">Open
@@ -137,8 +131,7 @@
             </div>
             <div class="row my-3">
                 <div class="col">
-                    <button class="btn btn-primary"
-                        @click="onLoadData">{{ view === 'chain' ? 'Load Blockchain' : 'Load Transactions' }}</button>
+                    <button class="btn btn-primary" @click="onLoadData">{{ view === 'chain' ? 'Load Blockchain' : 'Load Transactions' }}</button>
                     <button v-if="view === 'chain' && wallet" class="btn btn-success" @click="onMine">Mine
                         Coins</button>
                 </div>
@@ -155,8 +148,7 @@
                         <div class="card" v-for="(data, index) in loadedData">
                             <div v-if="view === 'chain'" class="card-header">
                                 <h5 class="mb-0">
-                                    <button class="btn btn-link" type="button"
-                                        @click="showElement === index ? showElement = null : showElement = index">
+                                    <button class="btn btn-link" type="button" @click="showElement === index ? showElement = null : showElement = index">
                                         Block #{{ data.index }}
                                     </button>
                                 </h5>
@@ -165,8 +157,7 @@
                                 <div class="card-body">
                                     <p>Previous Hash: {{ data.previous_hash }}</p>
                                     <div class="list-group">
-                                        <div v-for="tx in data.transactions"
-                                            class="list-group-item flex-column align-items-start">
+                                        <div v-for="tx in data.transactions" class="list-group-item flex-column align-items-start">
                                             <div>Sender: {{ tx.sender }}</div>
                                             <div>Recipient: {{ tx.recipient }}</div>
                                             <div>Amount: {{ tx.amount }}</div>
@@ -177,8 +168,7 @@
 
                             <div v-if="view === 'tx'" class="card-header">
                                 <h5 class="mb-0">
-                                    <button class="btn btn-link" type="button"
-                                        @click="showElement === index ? showElement = null : showElement = index">
+                                    <button class="btn btn-link" type="button" @click="showElement === index ? showElement = null : showElement = index">
                                         Transaction #{{ index }}
                                     </button>
                                 </h5>
@@ -228,7 +218,7 @@
                 }
             },
             computed: {
-                loadedData: function () {
+                loadedData: function() {
                     if (this.view === 'chain') {
                         return this.blockchain;
                     } else {
@@ -237,12 +227,12 @@
                 }
             },
             methods: {
-                onCreateWallet: function () {
+                onCreateWallet: function() {
                     // Send Http request to create a new wallet (and return keys)
                     var v = this
                     this.walletLoading = true
                     axios.post('/wallet')
-                        .then(function (response) {
+                        .then(function(response) {
                             this.error = null;
                             v.success = 'Created Wallet! Public Key: ' + response.data.public_key + ', Private Key: ' + response.data.private_key;
                             v.wallet = {
@@ -252,19 +242,19 @@
                             v.funds = response.data.balance;
                             v.walletLoading = false
                         })
-                        .catch(function(error){
+                        .catch(function(error) {
                             v.success = null;
                             v.error = error.response.data.message
                             v.wallet = null
                             v.walletLoading = false
                         })
                 },
-                onLoadWallet: function () {
+                onLoadWallet: function() {
                     // Send Http request to load an existing wallet (from a file on the server)
                     var v = this;
                     this.walletLoading = true
                     axios.get('/wallet')
-                        .then(function (response) {
+                        .then(function(response) {
                             v.error = null;
                             v.success = 'Created Wallet! Public Key: ' + response.data.public_key + ', Private Key: ' + response.data.private_key;
                             v.wallet = {
@@ -274,35 +264,35 @@
                             v.funds = response.data.balance;
                             v.walletLoading = false;
                         })
-                        .catch(function (error) {
+                        .catch(function(error) {
                             v.success = null;
                             v.error = error.response.data.message;
                             v.wallet = null;
                             v.walletLoading = false;
                         });
                 },
-                onSendTx: function () {
+                onSendTx: function() {
                     // Send Transaction to backend
                     this.txLoading = true;
                     var v = this;
                     axios.post('/transaction', {
-                        recipient: this.outgoingTx.recipient,
-                        amount: this.outgoingTx.amount
-                    })
-                    .then(function(response) {
-                        v.error = null;
-                        v.success = response.data.message;
-                        console.log(response.data);
-                        v.funds = response.data.balance;
-                        v.txLoading = false;
-                    })
-                    .catch(function (error) {
-                        v.success = null;
-                        v.error = error.response.data.message;
-                        v.txLoading = false;
-                    });
+                            recipient: this.outgoingTx.recipient,
+                            amount: this.outgoingTx.amount
+                        })
+                        .then(function(response) {
+                            v.error = null;
+                            v.success = response.data.message;
+                            console.log(response.data);
+                            v.funds = response.data.balance;
+                            v.txLoading = false;
+                        })
+                        .catch(function(error) {
+                            v.success = null;
+                            v.error = error.response.data.message;
+                            v.txLoading = false;
+                        });
                 },
-                onMine: function () {
+                onMine: function() {
                     var v = this
                     axios.post('/mine')
                         .then(function(response) {
@@ -311,22 +301,22 @@
                             console.log(response.data);
                             v.funds = response.data.balance;
                         })
-                        .catch(function (error) {
+                        .catch(function(error) {
                             v.success = null;
                             v.error = error.response.data.message;
                         });
                 },
-                onLoadData: function () {
+                onLoadData: function() {
                     if (this.view === 'chain') {
                         // Load blockchain data
                         var v = this
                         this.dataLoading = true
                         axios.get('/chain')
-                            .then(function (response) {
+                            .then(function(response) {
                                 v.blockchain = response.data
                                 v.dataLoading = false
                             })
-                            .catch(function (error) {
+                            .catch(function(error) {
                                 v.dataLoading = false
                                 v.error = 'Something went wrong'
                             });
@@ -334,11 +324,11 @@
                         var v = this
                         this.dataLoading = true
                         axios.get('/transactions')
-                            .then(function (response) {
+                            .then(function(response) {
                                 v.openTransactions = response.data
                                 v.dataLoading = false
-                            })// Load transaction data
-                            .catch(function (error) {
+                            }) // Load transaction data
+                            .catch(function(error) {
                                 v.dataLoading = false
                                 v.error = 'Something went wrong'
                             });
