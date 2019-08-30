@@ -16,14 +16,17 @@ MINING_REWARD = 10
 
 print(__name__)
 
+
 class Blockchain:
     """The Blockchain class manages the chain of blocks as well as open transactions and the node on which it's running.
-    
+
     Attributes:
         :chain: The list of blocks
         :open_transactions (private): The list of open transactions
+        :peers: Set of peer nodes
         :hosting_node: The connected node (which runs the blockchain).
     """
+
     def __init__(self, hosting_node_id):
         """The constructor of the Blockchain class."""
         # Our starting block for the blockchain
@@ -32,8 +35,9 @@ class Blockchain:
         self.chain = [genesis_block]
         # Unhandled transactions
         self.__open_transactions = []
-        self.load_data()
         self.hosting_node = hosting_node_id
+        self.__peers = set()
+        self.load_data()
 
     # This turns the chain attribute into a property with a getter (the method below) and a setter (@chain.setter)
     @property
@@ -41,10 +45,9 @@ class Blockchain:
         return self.__chain[:]
 
     # The setter for the chain property
-    @chain.setter 
+    @chain.setter
     def chain(self, val):
         self.__chain = val
-
 
     def get_open_transactions(self):
         """Returns a copy of the open transactions list."""
@@ -68,7 +71,7 @@ class Blockchain:
                         block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                     updated_blockchain.append(updated_block)
                 self.chain = updated_blockchain
-                open_transactions = json.loads(file_content[1])
+                open_transactions = json.loads(file_content[1][:-1])
                 # We need to convert  the loaded data because Transactions should use OrderedDict
                 updated_transactions = []
                 for tx in open_transactions:
@@ -76,6 +79,8 @@ class Blockchain:
                         tx['sender'], tx['recipient'], tx['signature'], tx['amount'])
                     updated_transactions.append(updated_transaction)
                 self.__open_transactions = updated_transactions
+                peer_nodes=json.loads(file_content[2])
+                self.__peers = set(peer_nodes)
         except (IOError, IndexError):
             pass
         finally:
@@ -91,6 +96,8 @@ class Blockchain:
                 f.write('\n')
                 saveable_tx = [tx.__dict__ for tx in self.__open_transactions]
                 f.write(json.dumps(saveable_tx))
+                f.write('\n')
+                f.write(json.dumps(list(self.__peers)))
                 # save_data = {
                 #     'chain': blockchain,
                 #     'ot': open_transactions
@@ -168,6 +175,27 @@ class Blockchain:
             return True
         return False
 
+    def add_peer(self, node):
+        """ Adds a new peer node to the peer node set
+        
+        Arguments:
+            :node: The node URL/IP which should be added."""
+        self.__peers.add(node)
+        self.save_data()
+
+    def remove_peer(self, node):
+         """ Deletes peer node from the peer node set
+        
+        Arguments:
+            :node: The node URL/IP which is to be removed."""
+         self.__peers.discard(node)
+         self.save_data()
+
+    def get_peers(self):
+        """ Return the set of all peer nodes."""
+        return list(self.__peers)
+
+
     def mine_block(self):
         """Create a new block and add open transactions to it."""
         # Fetch the currently last block of the blockchain
@@ -183,7 +211,8 @@ class Blockchain:
         #     'recipient': owner,
         #     'amount': MINING_REWARD
         # }
-        reward_transaction = Transaction('MINING', self.hosting_node, '', MINING_REWARD)
+        reward_transaction = Transaction(
+            'MINING', self.hosting_node, '', MINING_REWARD)
         # Copy transaction instead of manipulating the original open_transactions list
         # This ensures that if for some reason the mining should fail, we don't have the reward transaction stored in the open transactions
         copied_transactions = self.__open_transactions[:]
