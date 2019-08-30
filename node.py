@@ -6,8 +6,7 @@ from wallet import Wallet
 
 
 app = Flask(__name__)
-wallet = Wallet()
-blockchain = Blockchain(wallet.public_key)
+
 CORS(app)
 
 
@@ -16,12 +15,16 @@ def get_ui():
     return send_from_directory('UI', 'node.html')
 
 
+@app.route('/network', methods=['GET'])
+def get_network_ui():
+    return send_from_directory('UI', 'network.html')
+
 @app.route('/wallet', methods=['POST'])
 def create_keys():
     global blockchain
     wallet.create_keys()
     if wallet.save_keys():
-        blockchain = Blockchain(wallet.public_key)
+        blockchain = Blockchain(wallet.public_key, port)
         response = {
             'public_key': wallet.public_key,
             'private_key': wallet.private_key,
@@ -39,7 +42,7 @@ def create_keys():
 def load_keys():
     if wallet.load_keys():
         global blockchain
-        blockchain = Blockchain(wallet.public_key)
+        blockchain = Blockchain(wallet.public_key, port)
         response = {
             'public_key': wallet.public_key,
             'balance': blockchain.get_balance()
@@ -95,7 +98,7 @@ def add_transaction():
     req_fields = ['recipient', 'amount']
     if not all(field in values for field in req_fields):
         response = {
-            'message': 'required data missing.'
+            'message': 'Required data missing.'
         }
         return jsonify(response), 400
     recipient = values['recipient']
@@ -169,7 +172,7 @@ def remove_node(node_url):
 def get_peers():
     nodes = blockchain.get_peers()
     response = {
-        'all_nodes': list(blockchain.get_peers())
+        'all_nodes': list(nodes)
     }
     return jsonify(response), 200
 
@@ -196,4 +199,11 @@ def mine():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    from argparse import ArgumentParser
+    parser= ArgumentParser()
+    parser.add_argument('-p','--port', type=int, default=5000)
+    args=parser.parse_args()
+    port = args.port
+    wallet = Wallet(port)
+    blockchain = Blockchain(wallet.public_key, port)
+    app.run(host='0.0.0.0', port=port)
