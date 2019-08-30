@@ -1,6 +1,8 @@
 from functools import reduce
 import hashlib as hl
 
+import requests
+
 import json
 import pickle
 
@@ -37,7 +39,7 @@ class Blockchain:
         self.__open_transactions = []
         self.public_key = public_key
         self.__peers = set()
-        self.node_id=node_id
+        self.node_id = node_id
         self.load_data()
 
     # This turns the chain attribute into a property with a getter (the method below) and a setter (@chain.setter)
@@ -80,7 +82,7 @@ class Blockchain:
                         tx['sender'], tx['recipient'], tx['signature'], tx['amount'])
                     updated_transactions.append(updated_transaction)
                 self.__open_transactions = updated_transactions
-                peer_nodes=json.loads(file_content[2])
+                peer_nodes = json.loads(file_content[2])
                 self.__peers = set(peer_nodes)
         except (IOError, IndexError):
             pass
@@ -117,12 +119,16 @@ class Blockchain:
             proof += 1
         return proof
 
-    def get_balance(self):
+    def get_balance(self, sender=None):
         """Calculate and return the balance for a participant.
         """
-        if self.public_key == None:
-            return None
-        participant = self.public_key      # Fetch a list of all sent coin amounts for the given person (empty lists are returned if the person was NOT the sender)
+        if sender == None:
+            if self.public_key == None:
+                return None
+            participant = self.public_key
+        else:
+            participant=sender
+        # Fetch a list of all sent coin amounts for the given person (empty lists are returned if the person was NOT the sender)  
         # This fetches sent amounts of transactions that were already included in blocks of the blockchain
         tx_sender = [[tx.amount for tx in block.transactions
                       if tx.sender == participant] for block in self.__chain]
@@ -153,7 +159,7 @@ class Blockchain:
     # One required one (transaction_amount) and one optional one (last_transaction)
     # The optional one is optional because it has a default value => [1]
 
-    def add_transaction(self, recipient, sender, signature, amount=1.0):
+    def add_transaction(self, recipient, sender, signature, amount=1.0,is_recieving = False):
         """ Append a new value as well as the last blockchain value to the blockchain.
 
         Arguments:
@@ -172,29 +178,38 @@ class Blockchain:
         if Utility.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.save_data()
+            if not is_recieving:
+                for node in self.__peers:
+                    url = 'http://{}/broadcast-transaction'.format(node)
+                    try:
+                        response = requests.post(url, json={'sender': sender, 'recipient': recipient, 'signature': signature, 'amount':amount})
+                        if response.status_code == 400  or response.status_code == 500:
+                            print('Transaction declined, needs resolution!')
+                            return False
+                    except requests.exceptions.ConnectionError:
+                        continue
             return True
         return False
 
     def add_peer(self, node):
         """ Adds a new peer node to the peer node set
-        
+
         Arguments:
             :node: The node URL/IP which should be added."""
         self.__peers.add(node)
         self.save_data()
 
     def remove_peer(self, node):
-         """ Deletes peer node from the peer node set
-        
-        Arguments:
-            :node: The node URL/IP which is to be removed."""
-         self.__peers.discard(node)
-         self.save_data()
+        """ Deletes peer node from the peer node set
+
+       Arguments:
+           :node: The node URL/IP which is to be removed."""
+        self.__peers.discard(node)
+        self.save_data()
 
     def get_peers(self):
         """ Return the set of all peer nodes."""
         return list(self.__peers)
-
 
     def mine_block(self):
         """Create a new block and add open transactions to it."""

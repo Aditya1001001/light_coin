@@ -54,6 +54,40 @@ def load_keys():
         }
         return jsonify(response), 500
 
+@app.route('/broadcast-transaction', methods=['POST'])
+def broadcast():
+    values = request.get_json()
+    if not values:
+        response = {
+            'message': 'No data found.'
+        }
+        return jsonify(response), 400
+    req = ['sender', 'recipient', 'signature', 'amount']
+    if not all(key in values for key in req):
+        response = {
+            'message': 'Some data found.'
+        }
+        return jsonify(response), 400
+    success = blockchain.add_transaction(values['sender'], values['recipient'], values['signature'], values['amount'], is_recieving= True)
+    if success:
+        response = {
+            'message': 'Succesfully added transaction',
+            'transaction': {
+                'sender': values['sender'],
+                'recipient': values['recipient'],
+                'amount': values['amount'],
+                'signature': values['signature']
+            }
+        }
+        return jsonify(response), 201
+
+    else:
+        response = {
+            'message': 'Broadcasting transaction failed.'
+        }
+        return jsonify(response), 500
+
+
 
 @app.route('/chain', methods=['GET'])
 def get_chain():
