@@ -127,8 +127,8 @@ class Blockchain:
                 return None
             participant = self.public_key
         else:
-            participant=sender
-        # Fetch a list of all sent coin amounts for the given person (empty lists are returned if the person was NOT the sender)  
+            participant = sender
+        # Fetch a list of all sent coin amounts for the given person (empty lists are returned if the person was NOT the sender)
         # This fetches sent amounts of transactions that were already included in blocks of the blockchain
         tx_sender = [[tx.amount for tx in block.transactions
                       if tx.sender == participant] for block in self.__chain]
@@ -159,7 +159,7 @@ class Blockchain:
     # One required one (transaction_amount) and one optional one (last_transaction)
     # The optional one is optional because it has a default value => [1]
 
-    def add_transaction(self, recipient, sender, signature, amount=1.0,is_recieving = False):
+    def add_transaction(self, recipient, sender, signature, amount=1.0, is_receiving=False):
         """ Append a new value as well as the last blockchain value to the blockchain.
 
         Arguments:
@@ -172,24 +172,39 @@ class Blockchain:
         #     'recipient': recipient,
         #     'amount': amount
         # }
-        if self.public_key == None:
-            return False
+        # if self.public_key == None:
+        #     return False
         transaction = Transaction(sender, recipient, signature, amount)
         if Utility.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.save_data()
-            if not is_recieving:
+            if not is_receiving:
                 for node in self.__peers:
                     url = 'http://{}/broadcast-transaction'.format(node)
                     try:
-                        response = requests.post(url, json={'sender': sender, 'recipient': recipient, 'signature': signature, 'amount':amount})
-                        if response.status_code == 400  or response.status_code == 500:
+                        response = requests.post(url, json={
+                                                 'sender': sender, 'recipient': recipient, 'signature': signature, 'amount': amount})
+                        if response.status_code == 400 or response.status_code == 500:
                             print('Transaction declined, needs resolution!')
                             return False
                     except requests.exceptions.ConnectionError:
                         continue
             return True
         return False
+
+    def add_block(self, block):
+        tx = [Transaction(tx['sender'], tx['recipient'],
+                          tx['signature'], tx['amount']) for tx in block['transactions']]
+        proof_validity = Utility.valid_proof(
+            tx[:-1], block['previous_hash'], block['proof'])
+        hash_match = hash_block(self.chain[-1]) == block['previous_hash']
+        if not proof_validity or not hash_match:
+            return False
+        converted_block = Block(
+            block['index'], block['previous_hash'], tx, block['proof'], block['timestamp'])
+        self.__chain.append(converted_block)
+        self.save_data()
+        return True
 
     def add_peer(self, node):
         """ Adds a new peer node to the peer node set
@@ -240,4 +255,15 @@ class Blockchain:
         self.__chain.append(block)
         self.__open_transactions = []
         self.save_data()
+        for node in self.__peers:
+            url = 'http://{}/broadcast-block'.format(node)
+            converted_block = block.__dict__.copy()
+            converted_block['transactions'] = [
+                tx.__dict__ for tx in converted_block['transactions']]
+            try:
+                response = requests.post(url, json={'block': converted_block})
+                if response.status_code == 400 or response.status_code == 500:
+                    print('Block declined, needs resolving')
+            except requests.exceptions.ConnectionError:
+                continue
         return block

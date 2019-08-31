@@ -19,6 +19,7 @@ def get_ui():
 def get_network_ui():
     return send_from_directory('UI', 'network.html')
 
+
 @app.route('/wallet', methods=['POST'])
 def create_keys():
     global blockchain
@@ -54,24 +55,22 @@ def load_keys():
         }
         return jsonify(response), 500
 
+
 @app.route('/broadcast-transaction', methods=['POST'])
-def broadcast():
+def broadcast_transaction():
     values = request.get_json()
     if not values:
-        response = {
-            'message': 'No data found.'
-        }
+        response = {'message': 'No data found.'}
         return jsonify(response), 400
-    req = ['sender', 'recipient', 'signature', 'amount']
-    if not all(key in values for key in req):
-        response = {
-            'message': 'Some data found.'
-        }
+    required = ['sender', 'recipient', 'amount', 'signature']
+    if not all(key in values for key in required):
+        response = {'message': 'Some data is missing.'}
         return jsonify(response), 400
-    success = blockchain.add_transaction(values['sender'], values['recipient'], values['signature'], values['amount'], is_recieving= True)
+    success = blockchain.add_transaction(
+        values['recipient'], values['sender'], values['signature'], values['amount'], is_receiving=True)
     if success:
         response = {
-            'message': 'Succesfully added transaction',
+            'message': 'Successfully added transaction.',
             'transaction': {
                 'sender': values['sender'],
                 'recipient': values['recipient'],
@@ -80,13 +79,45 @@ def broadcast():
             }
         }
         return jsonify(response), 201
-
     else:
         response = {
-            'message': 'Broadcasting transaction failed.'
+            'message': 'Creating a transaction failed.'
         }
         return jsonify(response), 500
 
+
+@app.route('/broadcast-block', methods=['POST'])
+def broadcast_block():
+    values = request.get_json()
+    if not values:
+        response = {
+            'message': 'No data found.'
+        }
+        return jsonify(response), 400
+    if 'block' not in values:
+        response = {
+            'message': 'Some data found.'
+        }
+        return jsonify(response), 400
+    block = values['block']
+    if block['index'] == blockchain.chain[-1].index+1:
+        if blockchain.add_block(block):
+            response = {
+                'message': ' Block added successfully'
+            }
+            return jsonify(response), 201
+        else:
+            response = {
+                'message': 'Block is invalid'
+            }
+            return jsonify(response), 500
+    elif block['index'] > blockchain.chain[-1].index:
+        pass
+    else:
+        response = {
+            'message': 'Blockcahin seems to be irregular, block not add.'
+        }
+        return jsonify(response), 409
 
 
 @app.route('/chain', methods=['GET'])
@@ -234,9 +265,9 @@ def mine():
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-    parser= ArgumentParser()
-    parser.add_argument('-p','--port', type=int, default=5000)
-    args=parser.parse_args()
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--port', type=int, default=5000)
+    args = parser.parse_args()
     port = args.port
     wallet = Wallet(port)
     blockchain = Blockchain(wallet.public_key, port)
