@@ -110,12 +110,16 @@ def broadcast_block():
             response = {
                 'message': 'Block is invalid'
             }
-            return jsonify(response), 500
+            return jsonify(response), 409
     elif block['index'] > blockchain.chain[-1].index:
-        pass
+        response = {
+            'message': 'Blockcahin seems to be different from the local bloackchain.'
+        }
+        blockchain.resolve_conflicts = True
+        return jsonify(response), 200
     else:
         response = {
-            'message': 'Blockcahin seems to be irregular, block not add.'
+            'message': 'Blockcahin seems to be irregular, block not added.'
         }
         return jsonify(response), 409
 
@@ -244,8 +248,15 @@ def get_peers():
 
 @app.route('/mine', methods=['POST'])
 def mine():
+    if blockchain.resolve_conflicts:
+        print('MMMMMMMMMM')
+        response = {
+            'message': 'Resolve conflicts first, block not added'
+        }
+        return jsonify(response), 409
     block = blockchain.mine_block()
     if block != None:
+        print('MMMMMMMMMM')
         dict_block = block.__dict__.copy()
         dict_block['transactions'] = [
             tx.__dict__ for tx in dict_block['transactions']]
@@ -261,6 +272,18 @@ def mine():
             'wallet_available': wallet.public_key != None
         }
         return response, 500
+
+
+@app.route('/resolve', methods=['POST'])
+def resolve_conflicts():
+    replaced = blockchain.resolve()
+    if replaced:
+        response = {'message': ' Your chain was replaced'}
+    else:
+        response = {
+            'message': 'Local chain was correct'
+        }
+    return jsonify(response), 200
 
 
 if __name__ == '__main__':

@@ -40,6 +40,7 @@ class Blockchain:
         self.public_key = public_key
         self.__peers = set()
         self.node_id = node_id
+        self.resolve_conflicts = False
         self.load_data()
 
     # This turns the chain attribute into a property with a getter (the method below) and a setter (@chain.setter)
@@ -203,6 +204,14 @@ class Blockchain:
         converted_block = Block(
             block['index'], block['previous_hash'], tx, block['proof'], block['timestamp'])
         self.__chain.append(converted_block)
+        stored_transaction = self.__open_transactions[:]
+        for incoming_tx in block['transactions']:
+            for open_tx in stored_transaction:
+                if open_tx.sender == incoming_tx['sender'] and open_tx.recipient == incoming_tx['recipient'] and open_tx.amount == incoming_tx['amount'] and open_tx.signature == incoming_tx['signature']:
+                    try:
+                        self.__open_transactions.remove(open_tx)
+                    except ValueError:
+                        print("Item was already removed.")
         self.save_data()
         return True
 
@@ -225,6 +234,30 @@ class Blockchain:
     def get_peers(self):
         """ Return the set of all peer nodes."""
         return list(self.__peers)
+
+    def resolve(self):
+        winner_chain = self.chain
+        replace = False
+        for node in self.__peers:
+            url = 'http://{}/chain'.format(node)
+            try:
+                response = requests.get(url)
+                node_chain = response.json()
+                node_chain = [Block(block['index'], block['previous_hash'], [Transaction(
+                    tx['sender'], tx['recipient'], tx['signature'], tx['amount']) for tx in block['transactions']], block['proof'], block['timestamp']) for block in node_chain]
+                node_chain_length = len(node_chain)
+                local_chain_length = len(winner_chain)
+                if node_chain_length > local_chain_length and Utility.verify_chain(node_chain):
+                    winner_chain = node_chain
+                    replace = True
+            except requests.exceptions.ConnectionError:
+                continue
+        self.resolve_conflicts = False
+        self.chain = winner_chain
+        if replace:
+            self.__open_transactions = []
+        self.save_data()
+        return replace
 
     def mine_block(self):
         """Create a new block and add open transactions to it."""
@@ -264,6 +297,8 @@ class Blockchain:
                 response = requests.post(url, json={'block': converted_block})
                 if response.status_code == 400 or response.status_code == 500:
                     print('Block declined, needs resolving')
+                if response.status_code == 409:
+                    self.resolve_conflicts = True
             except requests.exceptions.ConnectionError:
                 continue
         return block

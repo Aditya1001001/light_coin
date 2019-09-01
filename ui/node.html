@@ -2,6 +2,13 @@
 <html lang="en">
 
 <head>
+    <link rel="apple-touch-icon" sizes="180x180" href="/UI/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/UI/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/UI/favicon-16x16.png">
+    <link rel="manifest" href="/UI/site.webmanifest">
+    <link rel="mask-icon" href="/UI/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -145,8 +152,8 @@
             <div class="row my-3">
                 <div class="col">
                     <button class="btn btn-primary" @click="onLoadData">{{ view === 'chain' ? 'Load Blockchain' : 'Load Transactions' }}</button>
-                    <button v-if="view === 'chain' && wallet" class="btn btn-success" @click="onMine">Mine
-                        Coins</button>
+                    <button v-if="view === 'chain' && wallet" class="btn btn-success" @click="onMine">Mine Coins</button>
+                    <button class="btn btn-warning" @click="onResolve"> Resolve Conflicts</button>
                 </div>
             </div>
             <div class="row">
@@ -313,6 +320,19 @@
                             v.success = response.data.message;
                             console.log(response.data);
                             v.funds = response.data.balance;
+                        })
+                        .catch(function(error) {
+                            v.success = null;
+                            v.error = error.response.data.message;
+                        });
+                },
+                onResolve: function() {
+                    var v = this
+                    axios.post('/resolve')
+                        .then(function(response) {
+                            v.error = null;
+                            v.success = response.data.message;
+
                         })
                         .catch(function(error) {
                             v.success = null;
